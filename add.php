@@ -12,6 +12,50 @@ if(!$result){
   print("Was not able to execute the query.");
 } */
 
+/** Create dummy table */
+$createDummy = "CREATE TABLE selista_duplicate AS
+                SELECT * FROM selista;";
+
+/** Insert data from csv */
+$importData = "COPY selista_duplicate(name_seliste,obstina,ekatte,t_v_m)
+               FROM '/home/tuan/Desktop/Ekatte/test.csv' DELIMITER ',' CSV HEADER;";
+
+/** Truncate existing table */
+$truncate = "TRUNCATE TABLE selista;";
+
+/** Insert into the original table */
+$insertOriginal = "INSERT INTO selista
+                   SELECT DISTINCT * FROM selista_duplicate;";
+
+/** Delete duplicate table */
+$deleteDuplicate = "DROP TABLE selista_duplicate;";
+
+/**
+$result1 = pg_query($db_connection, $createDummy);
+if(!$result1){
+  print("Did not create dummy.");
+}
+
+$result2 = pg_query($db_connection, $importData);
+if(!$result2){
+  print("Did not import the data.");
+}
+
+$result3 = pg_query($db_connection, $truncate);
+if(!$result3){
+  print("Did not truncate the table.");
+}
+
+$result4 = pg_query($db_connection, $insertOriginal);
+if(!$result4){
+  print("Did not insert into original.");
+}
+
+$result5 = pg_query($db_connection, $deleteDuplicate);
+if(!$result5){
+  print("Did not delete the duplicate.");
+} */
+
 /** TESTING - use multiple INSERTs 
 function readCSV($csvFile){
   $file_handle = fopen($csvFile, 'r');
@@ -78,6 +122,35 @@ pg_query($db_connection, "COPY obstini(obstina,name_obstina,category,document,ob
 pg_query($db_connection, "COPY selista(name_seliste,obstina,ekatte,t_v_m)
                           FROM '/home/tuan/Desktop/Ekatte/CSV/testSelista.csv' 
                           DELIMITER ',' CSV HEADER;");
+
+
+
+// Delete duplicates from oblasti
+pg_query($db_connection, "DELETE FROM oblasti a USING (
+                            SELECT MIN(ctid) as ctid, oblast
+                            FROM oblasti 
+                            GROUP BY oblast HAVING COUNT(*) > 1
+                          ) b
+                          WHERE a.oblast = b.oblast
+                          AND a.ctid <> b.ctid;");
+
+// Delete duplicates from obstini
+pg_query($db_connection, "DELETE FROM obstini a USING (
+                            SELECT MIN(ctid) as ctid, obstina
+                            FROM obstini 
+                            GROUP BY obstina HAVING COUNT(*) > 1
+                          ) b
+                          WHERE a.obstina = b.obstina
+                          AND a.ctid <> b.ctid;");
+
+// Delete duplicates from selista
+pg_query($db_connection, "DELETE FROM selista a USING (
+                            SELECT MIN(ctid) as ctid, ekatte
+                            FROM selista 
+                            GROUP BY ekatte HAVING COUNT(*) > 1
+                          ) b
+                          WHERE a.ekatte = b.ekatte
+                          AND a.ctid <> b.ctid;");
 
 
 
