@@ -4,14 +4,6 @@ if(!$db_connection){
   print("Was not able to connect");
 }
 
-/** Makes the bulk insert with COPY command, does not ignore duplicates
-$result = pg_query($db_connection, "COPY selista(name_seliste,obstina,ekatte,t_v_m)
-                                    FROM '/home/tuan/Desktop/Ekatte/test.csv' 
-                                    DELIMITER ',' CSV HEADER;");
-if(!$result){
-  print("Was not able to execute the query.");
-} */
-
 /** Drop contraints, COPY the data into the tables, add the constraints */
 // Drop selista constraints
 pg_query($db_connection, "ALTER TABLE selista DROP CONSTRAINT selista_ekatte_key");
@@ -29,19 +21,26 @@ pg_query($db_connection, "ALTER TABLE oblasti DROP CONSTRAINT oblast_pkey");
 
 
 // Copy CSV to oblasti
-pg_query($db_connection, "COPY oblasti(oblast,name_oblast,region, document)
-                          FROM '/home/tuan/Desktop/Ekatte/CSV/testOblasti.csv' 
-                          DELIMITER ',' CSV HEADER;");
+pg_query($db_connection, 
+         "COPY oblasti(oblast, name_oblast, region, document)
+          FROM PROGRAM 'cut -d \",\" -f 1,3,4,5 /home/tuan/Desktop/Ekatte/CSV/oblasti.csv'
+          WITH (FORMAT CSV, HEADER);");
 
 // Copy CSV to obstini
-pg_query($db_connection, "COPY obstini(obstina,name_obstina,category,document,oblast)
-                          FROM '/home/tuan/Desktop/Ekatte/CSV/testObstini.csv' 
-                          DELIMITER ',' CSV HEADER;");
+pg_query($db_connection, 
+         "COPY obstini(obstina, name_obstina, category, document)
+          FROM PROGRAM 'cut -d \",\" -f 1,3,4,5 /home/tuan/Desktop/Ekatte/CSV/obstini.csv'
+          WITH (FORMAT CSV, HEADER);");
+
+// Update oblast column in obstini
+pg_query($db_connection, "UPDATE obstini
+                          SET oblast = SUBSTRING(obstina, 1, 3);");
 
 // Copy CSV to selista
-pg_query($db_connection, "COPY selista(name_seliste,obstina,ekatte,t_v_m)
-                          FROM '/home/tuan/Desktop/Ekatte/CSV/testSelista.csv' 
-                          DELIMITER ',' CSV HEADER;");
+pg_query($db_connection, 
+         "COPY selista(ekatte, t_v_m, name_seliste, obstina)
+          FROM PROGRAM 'cut -d \",\" -f 3,5,1,2 /home/tuan/Desktop/Ekatte/CSV/ekatte.csv'
+          WITH (FORMAT CSV, HEADER);");
 
 
 
@@ -85,11 +84,9 @@ pg_query($db_connection, "ALTER TABLE obstini ADD CONSTRAINT obstina_oblast_fkey
 pg_query($db_connection, "ALTER TABLE obstini ADD CONSTRAINT obstina_obstina_key UNIQUE (obstina)");
 
 // Add selista contraints back
-pg_query($db_connection, "ALTER TABLE selista ADD CONSTRAINT selista_pkey PRIMARY KEY (name_seliste, obstina)");
+pg_query($db_connection, "ALTER TABLE selista ADD CONSTRAINT selista_pkey PRIMARY KEY (ekatte)");
 pg_query($db_connection, "ALTER TABLE selista ADD CONSTRAINT selista_obstina_fkey FOREIGN KEY (obstina)
                                                     REFERENCES public.obstini (obstina) MATCH SIMPLE
                                                     ON UPDATE NO ACTION ON DELETE NO ACTION");
 pg_query($db_connection, "ALTER TABLE selista ADD CONSTRAINT selista_ekatte_key UNIQUE (ekatte)");
-
-
 ?>
